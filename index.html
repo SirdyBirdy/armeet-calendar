@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book a session</title>
+<link rel="stylesheet" href="css/style.css">
+</head><body>
+<nav id="brand"></nav>
+<div class="wrap">
+<h1 id="title"></h1>
+<p class="lead" id="lead"></p>
+<div class="steps" id="steps"></div>
+
+<!-- 0: choose clinic (only shown when there is more than one) -->
+<section class="step" data-s="0"><div class="grid" id="clinics"></div></section>
+
+<!-- 1: day and time -->
+<section class="step" data-s="1"><p class="summary" id="sum1"></p><p class="notice" id="notice" role="status"></p><div class="panel">
+  <div>
+    <div class="cal-h"><span class="mo"><button id="prev" aria-label="Previous month">&#8249;</button><span id="month"></span><button id="nextm" aria-label="Next month">&#8250;</button></span><span class="tz">IST (UTC+5:30)</span></div>
+    <div class="cal" id="cal"></div>
+  </div>
+  <div><div class="cal-h"><span id="dayLabel">Select a date</span></div><div class="slots" id="slots" aria-live="polite"></div></div>
+</div></section>
+
+<!-- 2: details -->
+<section class="step" data-s="2"><p class="summary" id="sum2"></p>
+<form id="form" onsubmit="return false" novalidate>
+  <div><label for="fn">Full name</label><input id="fn" autocomplete="name" placeholder="Jane Appleseed" maxlength="80"></div>
+  <div><label for="fe">Email</label><input id="fe" type="email" autocomplete="email" placeholder="jane@example.com" maxlength="120"></div>
+  <div><label for="fp">Phone (optional)</label><input id="fp" type="tel" autocomplete="tel" placeholder="+91" maxlength="20"></div>
+  <div><label for="fm">Is there anything you'd like me to know beforehand? (optional)</label><textarea id="fm" rows="3" maxlength="500"></textarea></div>
+  <input id="hp" class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <details><summary class="poltitle"></summary><div id="pol1"></div></details>
+  <label class="check"><input id="fc" type="checkbox"> <span id="consent"></span></label>
+  <p class="err" id="err" role="alert"></p>
+</form></section>
+
+<!-- 3: payment -->
+<section class="step" data-s="3"><p class="summary" id="sum3"></p><div class="done">
+  <div class="pay" id="pay"></div>
+  <p class="small" id="held"></p>
+  <div class="actions"><button class="btn" id="paid">I've paid</button><button class="btn ghost" id="other">Choose another time</button></div>
+  <p class="err" id="payerr" role="alert"></p>
+</div></section>
+
+<!-- 4: done -->
+<section class="step" data-s="4"><div class="done">
+  <div class="tick">&#10003;</div><h2 id="thanks"></h2>
+  <p id="sum4"></p><p id="thanksbody"></p>
+  <div class="info"><h3 id="nexttitle"></h3><p id="nextstep"></p></div>
+  <div class="info"><h3 class="poltitle"></h3><div id="pol2"></div></div>
+  <p class="err" id="doneerr" role="alert"></p>
+  <div class="bar"><a class="btn" id="ics">Add to Calendar</a><button class="btn ghost" id="resched">Reschedule</button></div>
+</div></section>
+
+<!-- 5: cancel page (opened from the link in the confirmation email) -->
+<section class="step" data-s="5"><div class="done">
+  <p id="cx-info"></p>
+  <div class="info"><h3 class="poltitle"></h3><div id="pol3"></div></div>
+  <p class="err" id="cx-err" role="alert"></p>
+  <div class="bar"><button class="btn" id="cx-btn" disabled>Cancel session</button><a class="btn ghost" id="cx-link" hidden>Book a different time</a></div>
+</div></section>
+
+<div class="bar" id="bar"><button class="btn ghost" id="back">Back</button><button class="btn" id="next" disabled>Continue</button></div>
+<p class="note" id="footnote"></p>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/app.js"></script>
+</body></html>
