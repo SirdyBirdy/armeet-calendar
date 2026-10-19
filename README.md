@@ -21,6 +21,8 @@ js/qrcode.min.js      QR code library (fallback when the QR image is missing)
 np-qr.png             your payment QR image
 apps-script/Code.gs   backend, pasted into Google Apps Script (NOT uploaded to GitHub)
 apps-script/appsscript.json   Apps Script settings (time zone, web app access)
+
+../booking-admin/     private admin page (separate Apps Script project, also NEVER uploaded to GitHub)
 ```
 
 ## Slot rule
@@ -55,7 +57,7 @@ Apps Script is Google's built-in scripting tool. A script runs as you, so it can
 
 ### 2.2 Edit the settings at the top of Code.gs
 
-Change `ownerEmail` to your email. Leave `siteUrl` for now; you fill it in after step 4. Everything else is already set for Law College Road on Thursdays. Click the disk icon (or Ctrl/Cmd+S) to save.
+Change `ownerEmail` to your email. `siteUrl` is already set to `https://sirdybirdy.github.io/armeet-calendar/`, which the cancel link in client emails uses. Everything else is already set for Law College Road on Thursdays. Click the disk icon (or Ctrl/Cmd+S) to save.
 
 ### 2.3 Run it once to grant permission
 
@@ -93,11 +95,11 @@ Saving is not enough. The live URL runs the last deployed version. After any cha
 
 ## 4. Put the site on GitHub Pages
 
-1. Create a new **public** repository on GitHub (for example `booking`).
-2. Upload `index.html`, `np-qr.png`, and the `css` and `js` folders. **Do not upload the `apps-script` folder.** `Code.gs` holds your email address and the repo is public.
+1. Create a new **public** repository on GitHub (this one is `armeet-calendar`).
+2. Upload `index.html`, `np-qr.png`, and the `css` and `js` folders. **Do not upload the `apps-script` folder or `booking-admin`.** `Code.gs` holds your email address and the repo is public.
 3. In the repo, go to **Settings**, **Pages**. Under "Build and deployment" choose **Deploy from a branch**, branch `main`, folder `/ (root)`, and Save.
-4. After a minute your site is live at `https://YOUR-USERNAME.github.io/booking/`.
-5. Back in Apps Script, set `siteUrl` in `CFG` to that address (keep the trailing `/`), save, and redeploy a new version (step 2.7). The cancel link in confirmation emails uses it.
+4. After a minute your site is live at `https://sirdybirdy.github.io/armeet-calendar/`.
+5. Check that `siteUrl` in `CFG` matches that address exactly, including the trailing `/`. If you ever rename the repo, change it and redeploy a new version (step 2.7).
 
 The phone number and UPI link in `js/config.js` are public because they are the same information printed on your QR.
 
@@ -117,7 +119,7 @@ The phone number and UPI link in `js/config.js` are public because they are the 
 | Block a day | Add an all-day event on that day. |
 | Block part of a day | Add an event covering that slot. |
 | Remove a booking | Delete the event. The slot reopens. |
-| See who booked | Open the event. Name, email, phone and notes are in the description. |
+| See who booked | Open the event. Name, email, WhatsApp number (with a tap-to-chat link) and notes are in the description. |
 | Release unpaid holds automatically | Set `holdHours` (for example `12`), save, run `installHoldTrigger` once, redeploy. Holds that were never marked paid and not turned green are deleted after that time and the client is emailed. Bookings where the client tapped **I've paid** are never auto-released. |
 
 Colours: yellow (Banana) means held and unpaid. Green (Basil) means confirmed.
@@ -155,7 +157,7 @@ There are no API keys. The only value that connects the two halves is the Web ap
 | `clinics[].payment.qrImage` | QR image file. If it fails to load, a QR is generated from `link`. |
 | `clinics[].payment.link` | `upi://pay?...` link behind the Pay with UPI button. |
 | `clinics[].payment.byDay` | Optional per-weekday payee override. |
-| `text.*` | All client-facing wording. |
+| `text.*` | All client-facing wording, including the hint under the WhatsApp field. |
 
 ### `CFG` in `Code.gs` (the backend)
 
@@ -188,6 +190,25 @@ There are no API keys. The only value that connects the two halves is the Web ap
 
 ## 10. Limits to know about
 
+- The WhatsApp number is required and stored in the event description (and as a hidden tag for later automation). A 10-digit number is read as Indian (+91). Numbers from other countries need the country code. Nothing is sent over WhatsApp yet.
+
 - Payment cannot be verified automatically. **I've paid** only tells you to check Paytm. The slot is held from the moment someone confirms their details.
 - The Web app URL is public. The honeypot field and the per-email limit stop casual spam, not a determined person.
 - If two people book the same slot at the same moment, the second one is told the time was just taken and is shown the slots still open.
+
+## 11. What is public and what is private
+
+GitHub Pages on a free account only works from a public repository. A private repository needs a paid plan, and even then the published site is still public (only GitHub Enterprise Cloud can restrict who sees it). So a private repo does not hide a Pages site, and nothing sensitive should live in this repo at all.
+
+| Where | What is there |
+|---|---|
+| Public GitHub repo | Page code, wording, clinic name and address, the Paytm number and UPI link (printed on your QR anyway), the QR image, the Apps Script web app URL |
+| Google Apps Script (public booking script) | Your email and settings, in `Code.gs`. Never uploaded to GitHub |
+| Google Calendar | Every booking, with client name, email and WhatsApp number in the event |
+| Google Apps Script (admin project) | The admin page. Only your Google account can open it |
+
+What the public web app URL can do: list open slot times, create a booking, and let a client look up, mark paid, or cancel their own booking using the private token in their email. It never returns anyone's name, email or number.
+
+If `Code.gs` was ever committed to the repo, delete it there. Git keeps history, so if it held your real email, treat that address as visible. Nothing else in the code is secret.
+
+Admin setup is in `../booking-admin/README.md`.
