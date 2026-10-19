@@ -47,6 +47,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 
 label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
 .check{display:flex;gap:10px;font-size:14px;color:var(--sub);align-items:flex-start;margin:0}.check input{width:auto;margin-top:3px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+form .hint{margin-top:6px}
 details{font-size:14px;color:var(--sub)}summary{cursor:pointer;color:var(--blue)}
 details ul{padding-left:20px;margin:8px 0;line-height:1.5}details p{margin:6px 0}
 
