@@ -36,7 +36,7 @@
   const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '' };
   let busy = false;
   const head = s => ({ 0: T.headings.clinic, 1: SINGLE ? T.headings.timeFirst : T.headings.time, 2: T.headings.details, 3: T.headings.pay, 5: T.headings.cancel })[s];
-  const formOk = () => $('#fn').value.trim() && /\S+@\S+\.\S+/.test($('#fe').value) && $('#fc').checked;
+  const formOk = () => $('#fn').value.trim() && /\S+@\S+\.\S+/.test($('#fe').value) && $('#fp').value.replace(/\D/g, '').length >= 10 && $('#fc').checked;
 
   /* ---------- render ---------- */
   function renderClinics() {
@@ -214,6 +214,7 @@
   $('#brand').textContent = SITE.brand;
   $('#footnote').textContent = T.footnote;
   $('#consent').textContent = T.consent;
+  $('#phonehint').textContent = T.whatsappHint;
   $$('.poltitle').forEach(e => e.textContent = T.policy.title);
   $('#pol1').innerHTML = $('#pol3').innerHTML = policyHtml();
   $('#steps').innerHTML = IDS.map(() => '<i></i>').join('');

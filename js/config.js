@@ -3,7 +3,7 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
+  apiUrl: '',
 
   brand: 'Armeet \u00B7 Psychologist',
 
@@ -38,6 +38,7 @@ window.SITE = {
 
     heldNote: 'Your time is held while you pay.',
     payNote: 'Please share a screenshot of the payment after scanning, so I can confirm your slot.',
+    whatsappHint: 'For booking updates on WhatsApp. Include the country code if it is not an Indian number.',
     consent: 'I have read and agree to the cancellation & payment policy.',
 
     policy: {
