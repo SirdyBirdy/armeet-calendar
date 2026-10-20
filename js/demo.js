@@ -37,7 +37,7 @@ window.demo = (() => {
         if (!o) throw err('That time was just taken.', 'taken');
         (booked[b.date] = booked[b.date] || new Set()).add(b.i);
         return { ok: true, id: 'demo|' + b.date + '|' + b.i, token: 'demo', start: o.start, end: o.end,
-          title: b.name + ' with Namaste Psychology (LCR)', location: 'Law College Road, Pune' };
+          title: b.name + ' with Namaste Psychology (LCR)', location: 'Law College Road, Pune', payBy: Date.now() + 24 * 36e5 };
       }
       if (b.action === 'cancel') { const [, ds, i] = b.id.split('|'); if (booked[ds]) booked[ds].delete(Number(i)); }
       return { ok: true };

@@ -10,6 +10,7 @@
   const dayLong = ds => fromKey(ds).toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const dayShort = ds => fromKey(ds).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   const fmtT = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
+  const fmtBy = ms => new Date(ms).toLocaleString('en', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const istDate = ms => new Date(ms + 19800000).toISOString().slice(0, 10);
   const policyHtml = () => `<ul>${T.policy.items.map(t => `<li>${t}</li>`).join('')}</ul><p>${T.policy.closing}</p>`;
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0 }); };
@@ -155,7 +156,7 @@
       ${p.vpa ? `<div class="vpa"><span>${p.vpa}</span><button id="copy">Copy</button></div>` : ''}
       <a class="btn" href="${link}">Pay with UPI</a>
       <p class="small">${T.payNote}</p>`;
-    $('#held').textContent = T.heldNote;
+    $('#held').textContent = b.payBy ? T.heldNote.replace('{deadline}', fmtBy(b.payBy)) : T.heldNoteOpen;
     const img = $('#qrimg'); if (img) img.onerror = () => { $('.qr').innerHTML = qrSvg(link); }; // image missing: generate from the link
     if (p.vpa) $('#copy').onclick = async e => { try { await navigator.clipboard.writeText(p.vpa); e.target.textContent = 'Copied'; } catch { e.target.textContent = 'Select and copy'; } };
   }
@@ -210,6 +211,23 @@
     };
   }
 
+  /* ---------- pay page (link from the confirmation email) ---------- */
+  async function payView(id, t) {
+    try {
+      const r = await api.lookup(id, t);
+      const clinic = SITE.clinics.find(c => c.id === r.clinic) || SITE.clinics[0];
+      S.clinic = clinic;
+      S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), clinic, payBy: r.payBy };
+      if (r.paid) { goto(4); $('#thanksbody').textContent = T.alreadyPaid; $('#nexttitle').parentNode.hidden = true; }
+      else goto(3);
+    } catch (e) {
+      S.s = 5; upd();
+      $('#title').textContent = T.payLinkInvalid[0]; $('#lead').textContent = e.code === 'invalid' ? T.payLinkInvalid[1] : e.message;
+      $('#cx-info').textContent = ''; $('#cx-btn').hidden = true; $('#pol3').parentNode.hidden = true;
+      const l = $('#cx-link'); l.hidden = false; l.href = location.pathname;
+    }
+  }
+
   /* ---------- wiring ---------- */
   $('#brand').textContent = SITE.brand;
   $('#footnote').textContent = T.footnote;
@@ -230,6 +248,7 @@
 
   const qs = new URLSearchParams(location.search);
   if (qs.get('cancel')) cancelView(qs.get('cancel'), qs.get('t') || '');
+  else if (qs.get('pay')) payView(qs.get('pay'), qs.get('t') || '');
   else if (SINGLE) { S.clinic = SITE.clinics[0]; goto(1); }
   else { S.s = 0; renderClinics(); upd(); }
 })();

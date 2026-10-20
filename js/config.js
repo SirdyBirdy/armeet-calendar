@@ -3,7 +3,7 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
+  apiUrl: '',
 
   brand: 'Armeet \u00B7 Psychologist',
 
@@ -36,7 +36,8 @@ window.SITE = {
       cancel:    ['Cancel your session.', 'Check the details below.'],
     },
 
-    heldNote: 'Your time is held while you pay.',
+    heldNote: 'Your time is held until {deadline}. Please pay before then, or it is released for someone else.',
+    heldNoteOpen: 'Your time is held while you pay.',   // used when automatic release is off
     payNote: 'Please share a screenshot of the payment after scanning, so I can confirm your slot.',
     whatsappHint: 'For booking updates on WhatsApp. Include the country code if it is not an Indian number.',
     consent: 'I have read and agree to the cancellation & payment policy.',
@@ -60,6 +61,8 @@ window.SITE = {
     },
 
     cancelled: ['Session cancelled.', 'Any refund or credit follows the cancellation & payment policy.'],
+    alreadyPaid: 'Your payment is confirmed. See you then.',
+    payLinkInvalid: ['Booking not found.', 'This link is no longer valid. Your slot may have been released. You are welcome to book a new time.'],
     noTimes: 'No times are open right now. Please check back soon.',
     taken: 'That time was just taken. Here are the times still open.',
     errorLoad: 'Could not load times. Reload the page to try again.',
