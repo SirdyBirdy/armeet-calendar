@@ -3,9 +3,9 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: '',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
 
-  brand: 'Armeet \u00B7 Psychologist',
+  brand: 'Sessions with Armeet',
 
   /* One entry per location. Add a second entry to show a "choose where" step first.
      id must match the clinic id in apps-script/Code.gs. */
