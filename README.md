@@ -5,7 +5,7 @@ A static booking page (GitHub Pages) that reads and writes your Google Calendar 
 How a booking works:
 
 1. The client picks a day and time. The page only offers slots that leave no gap (see "Slot rule").
-2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name with Namaste Psychology (LCR)`.
+2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name with Namaste Psychology (LCR)`. Their email has a link back to the payment screen, your Paytm number, and the time the hold ends.
 3. The client pays by UPI (QR or button), then taps **I've paid**. You get an email.
 4. You check Paytm and turn the calendar event green. That is your confirmation.
 
@@ -120,7 +120,7 @@ The phone number and UPI link in `js/config.js` are public because they are the 
 | Block part of a day | Add an event covering that slot. |
 | Remove a booking | Delete the event. The slot reopens. |
 | See who booked | Open the event. Name, email, WhatsApp number (with a tap-to-chat link) and notes are in the description. |
-| Release unpaid holds automatically | Set `holdHours` (for example `12`), save, run `installHoldTrigger` once, redeploy. Holds that were never marked paid and not turned green are deleted after that time and the client is emailed. Bookings where the client tapped **I've paid** are never auto-released. |
+| Switch on automatic release of unpaid holds | In Apps Script choose `installHoldTrigger` in the dropdown and click **Run** once (it checks every 30 minutes). `holdHours` is already 24. A hold is released at the earlier of 24 hours after booking and 24 hours before the session, but never sooner than 3 hours after booking. The client is emailed. Bookings where the client tapped **I've paid**, or that you marked paid or unpaid in the admin, are never auto-released. |
 
 Colours: yellow (Banana) means held and unpaid. Green (Basil) means confirmed.
 
@@ -171,7 +171,10 @@ There are no API keys. The only value that connects the two halves is the Web ap
 | `daysAhead` | How far ahead clients can book. |
 | `minNoticeHours` | No bookings closer than this. 24 matches your policy. |
 | `maxActivePerEmail` | Upcoming bookings allowed per email address. |
-| `holdHours` | Auto-release unpaid holds after this many hours. 0 is off. |
+| `holdHours` | An unpaid hold is released this many hours after booking. 0 turns automatic release off. |
+| `payBeforeHours` | ...or this many hours before the session, whichever is earlier. 24 matches your policy. |
+| `minHoldHours` | A client always gets at least this long to pay, even when booking close to the deadline. |
+| `clinics.<id>.payLine` | Plain-text payment line in the confirmation email (your Paytm number). Empty leaves it out. |
 | `clinics.<id>.days / session / buffer / longBuffer / longAfter / max` | The schedule for that location. |
 | `clinics.<id>.mode` | `cluster` (no gaps) or `sequence` (only the first free slot). |
 | `clinics.<id>.org` | Used in the calendar title. |
