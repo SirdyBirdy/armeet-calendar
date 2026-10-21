@@ -17,6 +17,8 @@ window.demo = (() => {
     if (n === 2) booked[ds] = new Set([3]);
   });
 
+  const paid = new Set();   // booking ids the demo client has marked as paid
+
   const offers = ds => {
     const taken = booked[ds] || new Set(), earliest = Date.now() + 24 * 36e5;
     const free = HOURS.map((h, i) => ({ i, start: ms(ds, h), end: ms(ds, h + 1) }))
@@ -25,9 +27,12 @@ window.demo = (() => {
   };
 
   return {
-    availability() {
+    availability(clinicId, mv) {
       const days = {};
+      let restore;   // when moving a booking, its own slot counts as free
+      if (mv && String(mv.id).indexOf('demo|') === 0) { const [, ds, i] = mv.id.split('|'); if (booked[ds] && booked[ds].delete(Number(i))) restore = () => booked[ds].add(Number(i)); }
       dates.forEach(ds => { const o = offers(ds); if (o.length) days[ds] = o; });
+      if (restore) restore();
       return { days, from: ymd(new Date()), until: ymd(new Date(Date.now() + 35 * 864e5)) };
     },
     lookup() { throw err('Cancel links need the live backend.'); },
@@ -39,6 +44,17 @@ window.demo = (() => {
         return { ok: true, id: 'demo|' + b.date + '|' + b.i, token: 'demo', start: o.start, end: o.end,
           title: b.name + ' with Namaste Psychology (LCR)', location: 'Law College Road, Pune', payBy: Date.now() + 24 * 36e5 };
       }
+      if (b.action === 'reschedule') {
+        const [, ods, oi] = b.id.split('|'), old = booked[ods];
+        if (old) old.delete(Number(oi));
+        const o = offers(b.date).find(s => s.i === b.i);
+        if (!o) { if (old) old.add(Number(oi)); throw err('That time was just taken.', 'taken'); }
+        (booked[b.date] = booked[b.date] || new Set()).add(b.i);
+        const nid = 'demo|' + b.date + '|' + b.i, wasPaid = paid.delete(b.id);
+        if (wasPaid) paid.add(nid);
+        return { ok: true, id: nid, start: o.start, end: o.end, title: 'Demo session', location: 'Law College Road, Pune', paid: wasPaid, payBy: wasPaid ? null : Date.now() + 24 * 36e5 };
+      }
+      if (b.action === 'paid') paid.add(b.id);
       if (b.action === 'cancel') { const [, ds, i] = b.id.split('|'); if (booked[ds]) booked[ds].delete(Number(i)); }
       return { ok: true };
     },

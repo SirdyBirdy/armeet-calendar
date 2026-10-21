@@ -24,7 +24,9 @@
       if (r.error) throw Object.assign(new Error(r.error), { code: r.code });
       return r;
     },
-    availability: id => SITE.apiUrl ? api.call(`${SITE.apiUrl}?action=availability&clinic=${encodeURIComponent(id)}`) : demo.availability(id),
+    availability: (id, mv) => SITE.apiUrl
+      ? api.call(`${SITE.apiUrl}?action=availability&clinic=${encodeURIComponent(id)}` + (mv ? `&id=${encodeURIComponent(mv.id)}&t=${encodeURIComponent(mv.token)}` : ''))
+      : demo.availability(id, mv),
     lookup: (id, t) => SITE.apiUrl ? api.call(`${SITE.apiUrl}?action=lookup&id=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`) : demo.lookup(),
     post: body => SITE.apiUrl
       ? api.call(SITE.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
@@ -34,7 +36,7 @@
   /* ---------- state ---------- */
   const SINGLE = SITE.clinics.length === 1;
   const IDS = SINGLE ? [1, 2, 3, 4] : [0, 1, 2, 3, 4];
-  const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '' };
+  const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '', moving: null };
   let busy = false;
   const head = s => ({ 0: T.headings.clinic, 1: SINGLE ? T.headings.timeFirst : T.headings.time, 2: T.headings.details, 3: T.headings.pay, 5: T.headings.cancel })[s];
   const formOk = () => $('#fn').value.trim() && /\S+@\S+\.\S+/.test($('#fe').value) && $('#fp').value.replace(/\D/g, '').length >= 10 && $('#fc').checked;
@@ -93,7 +95,7 @@
 
   async function loadAvail() {
     S.avail = null; renderCal(); renderSlots(); upd();
-    try { S.avail = await api.availability(S.clinic.id); } catch (e) { S.avail = { error: e.message, days: {} }; }
+    try { S.avail = await api.availability(S.clinic.id, S.moving); } catch (e) { S.avail = { error: e.message, days: {} }; }
     if (!S.avail.error) {
       const offered = S.date && S.avail.days[S.date];
       if (!offered) S.date = S.slot = null;
@@ -106,19 +108,20 @@
   function upd() {
     $$('.step').forEach(e => e.classList.toggle('on', +e.dataset.s === S.s));
     $$('#steps i').forEach((e, k) => e.classList.toggle('on', IDS[k] <= S.s));
-    $('#steps').hidden = S.s === 5;
+    $('#steps').hidden = S.s === 5 || !!S.moving;
+    const mv = !!S.moving && S.s === 1;
     const last = S.s === 4;
     $('#title').style.display = $('#lead').style.display = last ? 'none' : '';
-    const h = head(S.s); if (h) { $('#title').textContent = h[0]; $('#lead').textContent = h[1]; }
+    const h = mv ? T.headings.reschedule : head(S.s); if (h) { $('#title').textContent = h[0]; $('#lead').textContent = h[1]; }
     if (S.clinic) {
-      $('#sum1').textContent = `${S.clinic.daysLabel} \u00B7 ${S.clinic.address}`;
+      $('#sum1').textContent = `${(S.avail && S.avail.daysLabel) || S.clinic.daysLabel} \u00B7 ${S.clinic.address}`;
       if (S.slot) $('#sum2').textContent = `${dayShort(S.date)} at ${fmtT(S.slot.start)} \u00B7 ${S.clinic.address}`;
     }
     $('#notice').textContent = S.s === 1 ? S.notice : '';
     const early = S.s <= 2;
     $('#bar').style.display = early ? 'flex' : 'none';
-    $('#back').style.visibility = S.s > IDS[0] && early ? 'visible' : 'hidden';
-    $('#next').textContent = busy ? 'Booking...' : S.s === 2 ? 'Continue to Payment' : 'Continue';
+    $('#back').style.visibility = (S.s > IDS[0] && early) || mv ? 'visible' : 'hidden';
+    $('#next').textContent = busy ? (S.moving ? 'Moving...' : 'Booking...') : mv ? 'Move session' : S.s === 2 ? 'Continue to Payment' : 'Continue';
     $('#next').disabled = busy || (S.s === 0 && !S.clinic) || (S.s === 1 && !S.slot) || (S.s === 2 && !formOk());
   }
 
@@ -163,6 +166,7 @@
 
   function renderDone() {
     const b = S.booking, z = ms => new Date(ms).toISOString().replace(/[-:]|\.\d+/g, '');
+    $('#nexttitle').parentNode.hidden = false;
     $('#thanks').textContent = T.thanks.title;
     $('#sum4').textContent = `${dayLong(b.date)}, ${fmtT(b.start)} to ${fmtT(b.end)}. ${b.clinic.address}.`;
     $('#thanksbody').textContent = T.thanks.body;
@@ -189,6 +193,27 @@
     catch (e) { btn.disabled = false; $(errBox).textContent = e.message; }
   }
 
+  /* ---------- reschedule: move the same booking to another slot ---------- */
+  function startMove(returnTo) {
+    S.moving = { id: S.booking.id, token: S.booking.token, returnTo };
+    S.clinic = S.booking.clinic; S.date = S.slot = null; S.notice = '';
+    goto(1);
+  }
+  function stopMove() { const to = S.moving.returnTo; S.moving = null; S.date = S.slot = null; goto(to); }
+  async function confirmMove() {
+    busy = true; upd();
+    try {
+      const r = await api.post({ action: 'reschedule', id: S.moving.id, token: S.moving.token, date: S.date, i: S.slot.i });
+      S.booking = { ...S.booking, id: r.id || S.booking.id, start: r.start, end: r.end, title: r.title, location: r.location, date: S.date, payBy: r.payBy, paid: r.paid };
+      S.moving = null; busy = false;
+      if (r.paid) { goto(4); $('#thanks').textContent = T.moved.title; $('#thanksbody').textContent = T.moved.body; $('#nexttitle').parentNode.hidden = true; }
+      else goto(3);
+    } catch (e) {
+      busy = false;
+      if (e.code === 'taken') { S.notice = T.taken; S.slot = null; goto(1); } else { S.notice = e.message; upd(); }
+    }
+  }
+
   /* ---------- cancel page (link from the confirmation email) ---------- */
   async function cancelView(id, t) {
     S.s = 5; upd();
@@ -198,6 +223,9 @@
       const hrs = Math.round(r.hoursLeft);
       $('#cx-info').textContent = `${dayLong(istDate(r.start))}, ${fmtT(r.start)} to ${fmtT(r.end)}. ${r.address}. ` +
         (r.hoursLeft > 0 ? `That is about ${hrs} ${hrs === 1 ? 'hour' : 'hours'} from now.` : 'This session has already started.');
+      S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), payBy: r.payBy, paid: r.paid,
+        clinic: SITE.clinics.find(c => c.id === r.clinic) || SITE.clinics[0] };
+      $('#cx-move').hidden = !r.canReschedule; $('#cx-note').hidden = r.canReschedule; $('#cx-note').textContent = T.rescheduleLate;
       $('#cx-btn').disabled = false;
     } catch (e) { $('#cx-info').textContent = e.message; }
     $('#cx-btn').onclick = async e => {
@@ -205,7 +233,7 @@
       try {
         await api.post({ action: 'cancel', id, token: t });
         $('#title').textContent = T.cancelled[0]; $('#lead').textContent = T.cancelled[1];
-        $('#cx-info').textContent = ''; e.target.hidden = true;
+        $('#cx-info').textContent = ''; e.target.hidden = true; $('#cx-move').hidden = true; $('#cx-note').hidden = true;
         const l = $('#cx-link'); l.hidden = false; l.href = location.pathname;
       } catch (err) { e.target.disabled = false; $('#cx-err').textContent = err.message; }
     };
@@ -236,14 +264,15 @@
   $$('.poltitle').forEach(e => e.textContent = T.policy.title);
   $('#pol1').innerHTML = $('#pol3').innerHTML = policyHtml();
   $('#steps').innerHTML = IDS.map(() => '<i></i>').join('');
-  $('#next').onclick = () => S.s === 2 ? confirmBooking() : goto(S.s + 1);
-  $('#back').onclick = () => goto(S.s - 1);
+  $('#next').onclick = () => S.moving && S.s === 1 ? confirmMove() : S.s === 2 ? confirmBooking() : goto(S.s + 1);
+  $('#back').onclick = () => S.moving && S.s === 1 ? stopMove() : goto(S.s - 1);
   $('#prev').onclick = () => { S.month.m--; if (S.month.m < 0) S.month = { y: S.month.y - 1, m: 11 }; renderCal(); };
   $('#nextm').onclick = () => { S.month.m++; if (S.month.m > 11) S.month = { y: S.month.y + 1, m: 0 }; renderCal(); };
   $('#form').addEventListener('input', upd);
   $('#paid').onclick = e => markPaid(e.target);
   $('#other').onclick = e => release(e.target, '#payerr');
-  $('#resched').onclick = e => release(e.target, '#doneerr');
+  $('#resched').onclick = () => startMove(4);
+  $('#cx-move').onclick = () => startMove(5);
   if (!SITE.apiUrl) { const d = document.createElement('div'); d.className = 'demo'; d.textContent = 'Demo data. Set apiUrl in js/config.js.'; document.body.append(d); }
 
   const qs = new URLSearchParams(location.search);

@@ -3,9 +3,9 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
+  apiUrl: '',
 
-  brand: 'Sessions with Armeet',
+  brand: 'Armeet \u00B7 Psychologist',
 
   /* One entry per location. Add a second entry to show a "choose where" step first.
      id must match the clinic id in apps-script/Code.gs. */
@@ -34,6 +34,7 @@ window.SITE = {
       details:   ['A little about you.', 'Only what is needed. Nothing more.'],
       pay:       ['Complete your payment.', 'Scan the code or tap the button.'],
       cancel:    ['Cancel your session.', 'Check the details below.'],
+      reschedule: ['Choose a new time.', 'Pick what works for you.'],
     },
 
     heldNote: 'Your time is held until {deadline}. Please pay before then, or it is released for someone else.',
@@ -60,6 +61,8 @@ window.SITE = {
       nextTitle: 'Next step',            // the text under it is payNote
     },
 
+    moved: { title: 'Session moved.', body: 'Your session has been moved. Details have been sent to your email. Your payment carries over.' },
+    rescheduleLate: 'Rescheduling online closes 24 hours before the session. Please message me to change this one.',
     cancelled: ['Session cancelled.', 'Any refund or credit follows the cancellation & payment policy.'],
     alreadyPaid: 'Your payment is confirmed. See you then.',
     payLinkInvalid: ['Booking not found.', 'This link is no longer valid. Your slot may have been released. You are welcome to book a new time.'],
