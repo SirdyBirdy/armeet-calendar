@@ -120,15 +120,15 @@ The phone number and UPI link in `js/config.js` are public because they are the 
 | Block part of a day | Add an event covering that slot. |
 | Remove a booking | Delete the event. The slot reopens. |
 | See who booked | Open the event. Name, email, WhatsApp number (with a tap-to-chat link) and notes are in the description. |
-| Switch on automatic release of unpaid holds | In Apps Script choose `installHoldTrigger` in the dropdown and click **Run** once (it checks every 30 minutes). `holdHours` is already 24. A hold is released at the earlier of 24 hours after booking and 24 hours before the session, but never sooner than 3 hours after booking. The client is emailed. Bookings where the client tapped **I've paid**, or that you marked paid or unpaid in the admin, are never auto-released. |
+| Switch on automatic release of unpaid holds | In Apps Script choose `installTriggers` in the dropdown and click **Run** once (it runs every 30 minutes and also sends the reminders in section 12; the old name `installHoldTrigger` still works). `holdHours` is already 24. A hold is released at the earlier of 24 hours after booking and 24 hours before the session, but never sooner than 3 hours after booking. The client is emailed. Bookings where the client tapped **I've paid**, or that you marked paid or unpaid in the admin, are never auto-released. |
 
 Colours: yellow (Banana) means held and unpaid. Green (Basil) means confirmed.
 
 ## 7. Changing things
 
-**Different weekday or hours.** In `Code.gs`, edit `days`: `{ 4: { start: '10:00', end: '14:00' } }`. Key 1 is Monday through 7 for Sunday. Several days: `{ 2: {...}, 4: {...} }`. Then update `daysLabel` in `js/config.js` and redeploy the script.
+**Different weekday or hours.** Use the **Availability** tab in the admin (section 13). The booking page shows the live days, so there is nothing to edit in `js/config.js`. Until you set up the settings sheet, the booking script uses the `days` written in `Code.gs` (key 1 is Monday through 7 for Sunday).
 
-**Session length, buffers, maximum.** `session`, `buffer`, `longBuffer`, `longAfter`, `max` in `Code.gs`. Example for NIBM Mondays: `days: { 1: { start: '11:00', end: '17:00' } }, session: 50, buffer: 15, longBuffer: 30, longAfter: 3, max: 5`.
+**Session length, buffers, maximum.** Set these per day in the admin Availability tab. Example for NIBM Mondays: from 11:00 to 17:00, session 50, gap 15, longer gap 30 after every 3 sessions, max 5.
 
 **Add another location (for example NIBM).**
 1. In `Code.gs`, copy the `lcr` block inside `clinics`, rename the id (`nibm`), and change address, org, days and session settings.
@@ -168,14 +168,19 @@ There are no API keys. The only value that connects the two halves is the Web ap
 | `ownerEmail` | Receives payment-claimed and cancellation emails. |
 | `senderName` | Sender name on client emails. |
 | `siteUrl` | GitHub Pages address, used in the cancel link. |
+| `sheetId` | ID of the "Booking settings" Google Sheet that holds your weekly availability. Empty means the days in this file are used. |
 | `daysAhead` | How far ahead clients can book. |
 | `minNoticeHours` | No bookings closer than this. 24 matches your policy. |
 | `maxActivePerEmail` | Upcoming bookings allowed per email address. |
 | `holdHours` | An unpaid hold is released this many hours after booking. 0 turns automatic release off. |
 | `payBeforeHours` | ...or this many hours before the session, whichever is earlier. 24 matches your policy. |
 | `minHoldHours` | A client always gets at least this long to pay, even when booking close to the deadline. |
+| `rescheduleBeforeHours` | Clients can move their own session up to this many hours before it. |
+| `maxReschedules` | How many times a client can move the same session themselves. |
+| `reminderHours` | Paid clients get a reminder email this many hours before the session. 0 turns it off. |
+| `nudgeHours` | You get an email when a "says paid" booking is still unconfirmed this many hours before the session. 0 turns it off. |
 | `clinics.<id>.payLine` | Plain-text payment line in the confirmation email (your Paytm number). Empty leaves it out. |
-| `clinics.<id>.days / session / buffer / longBuffer / longAfter / max` | The schedule for that location. |
+| `clinics.<id>.days / session / buffer / longBuffer / longAfter / max` | The schedule used until `sheetId` is set. After that these act only as defaults for any blank cell in the sheet. |
 | `clinics.<id>.mode` | `cluster` (no gaps) or `sequence` (only the first free slot). |
 | `clinics.<id>.org` | Used in the calendar title. |
 
@@ -215,3 +220,31 @@ What the public web app URL can do: list open slot times, create a booking, and 
 If `Code.gs` was ever committed to the repo, delete it there. Git keeps history, so if it held your real email, treat that address as visible. Nothing else in the code is secret.
 
 Admin setup is in `../booking-admin/README.md`.
+
+## 12. Rescheduling, reminders and nudges
+
+**Client reschedule.** On the confirmation screen, and on the page behind the cancel link in any email, there is a **Reschedule** button. The client picks a new slot from the ones the no-gap rule offers, and the same calendar event moves. A paid booking stays paid and green, so nothing is paid twice. An unpaid booking keeps its status and gets a new pay-by time. Limits: up to 24 hours before the session (`rescheduleBeforeHours`) and twice per booking (`maxReschedules`). Past that the page asks them to message you. They get an email with the new time. You get an email only when the booking was claimed or confirmed.
+
+**Your reschedule.** In the admin, **Reschedule** opens a date and time picker. It moves the booking to any time you choose (same length), refuses a time that overlaps another calendar event, and can email the client. Use it instead of Cancel when a paid client needs a new time.
+
+**Reminder.** A paid client gets one reminder email `reminderHours` (24) before the session, with the cancel and reschedule link. Moving a booking resets its reminder.
+
+**Unconfirmed-payment nudge.** If a client tapped "I've paid" and you have not marked it paid by `nudgeHours` (30) before the session, you get one email. That leaves time to check Paytm before the 24-hour payment deadline.
+
+All of this runs from one trigger every 30 minutes. If you set up `installHoldTrigger` earlier, run `installTriggers` once now. It replaces the old trigger, so nothing runs twice.
+
+## 13. Weekly availability from the admin
+
+Your days and hours live in a small Google Sheet called "Booking settings" in your Drive. The admin edits it, and the booking script reads it on every request, so a change shows on the booking page straight away. Existing bookings are not touched.
+
+**One-time setup**
+1. In the Booking Admin project, paste in the new `Code.gs` and `Admin.html`. Run `authorize` once (it asks for a new permission, Google Sheets) and redeploy, or use your `/dev` link.
+2. Open the admin, go to the **Availability** tab, and click **Create settings sheet**. It starts with your Thursday 10am to 2pm at Law College Road.
+3. The page shows the sheet's ID. Copy it into `sheetId` in the CFG block of this booking script and save.
+4. Run `authorize` in this script (Google Sheets permission again), then redeploy a new version.
+
+**Using it.** In the Availability tab, each location lists its days. For each day set From, To, session length and the gap between sessions. **More options** has a longer gap after every N sessions, the most sessions per day, and the booking style (**No gaps**, or **First free only**). A line under each day previews the exact sessions clients will be offered. **Add a day** adds another weekday, **Remove** takes one away, the **On** box switches a day off without deleting it, and **Save availability** applies it.
+
+**Time off.** For a holiday or a day away, add an all-day event to your calendar on that date. Availability here is the weekly pattern.
+
+**Adding another location (for example NIBM).** Add it to `clinics` in this script (address, org, payLine) and in the admin script's `clinics` (id and name), and to `clinics` in `js/config.js`. It then appears in the admin Availability tab with no days, ready for you to add Monday.
