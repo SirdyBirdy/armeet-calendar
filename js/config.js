@@ -3,7 +3,7 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: '',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
 
   brand: 'Armeet \u00B7 Psychologist',
 
