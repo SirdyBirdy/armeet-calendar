@@ -9,16 +9,13 @@
 <p class="lead" id="lead"></p>
 <div class="steps" id="steps"></div>
 
-<!-- 0: choose clinic (only shown when there is more than one) -->
-<section class="step" data-s="0"><div class="grid" id="clinics"></div></section>
-
 <!-- 1: day and time -->
 <section class="step" data-s="1"><p class="summary" id="sum1"></p><p class="notice" id="notice" role="status"></p><div class="panel">
   <div>
     <div class="cal-h"><span class="mo"><button id="prev" aria-label="Previous month">&#8249;</button><span id="month"></span><button id="nextm" aria-label="Next month">&#8250;</button></span><span class="tz">IST (UTC+5:30)</span></div>
     <div class="cal" id="cal"></div>
   </div>
-  <div><div class="cal-h"><span id="dayLabel">Select a date</span></div><div class="slots" id="slots" aria-live="polite"></div></div>
+  <div><div class="cal-h"><span id="dayLabel">Select a date</span></div><p class="hint" id="dayPlace"></p><div class="slots" id="slots" aria-live="polite"></div></div>
 </div></section>
 
 <!-- 2: details -->

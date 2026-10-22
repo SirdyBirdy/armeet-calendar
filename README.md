@@ -133,7 +133,7 @@ Colours: yellow (Banana) means held and unpaid. Green (Basil) means confirmed.
 **Add another location (for example NIBM).**
 1. In `Code.gs`, copy the `lcr` block inside `clinics`, rename the id (`nibm`), and change address, org, days and session settings.
 2. In `js/config.js`, copy the clinic block inside `clinics`, use the same id, and change label, address, daysLabel and payment.
-3. With two or more clinics the page shows a "choose where" step first. Redeploy the script and re-upload `config.js`.
+3. The booking calendar then shows every location together. Each open date carries a short location tag (`short` in `config.js`, for example LCR or NIBM), and the day panel shows the address. If two locations are open on the same date, the tag reads "2 places" and the times are grouped by address. Redeploy the script and re-upload `config.js`.
 
 **Different payee on a particular weekday.** In `js/config.js`, uncomment `byDay` inside the clinic's `payment` and give the weekday number its own caption, qrImage or link.
 
@@ -152,7 +152,9 @@ There are no API keys. The only value that connects the two halves is the Web ap
 | `apiUrl` | Apps Script Web app URL. Empty means demo mode. |
 | `brand` | Text in the top bar. |
 | `clinics[].id` | Must match the clinic id in `Code.gs`. |
-| `clinics[].label`, `address`, `daysLabel` | What the client sees as the location line. |
+| `clinics[].label`, `address`, `daysLabel` | The location name and address shown to the client. `daysLabel` is only a fallback, the page shows the live days. |
+| `clinics[].short` | Short tag under each open date in the calendar (for example LCR). Defaults to the initials of `label`. |
+| `showLocationOnDates` | `true` shows that tag under each date. `false` hides it. |
 | `clinics[].payment.caption` | Line shown under the QR. |
 | `clinics[].payment.qrImage` | QR image file. If it fails to load, a QR is generated from `link`. |
 | `clinics[].payment.link` | `upi://pay?...` link behind the Pay with UPI button. |
