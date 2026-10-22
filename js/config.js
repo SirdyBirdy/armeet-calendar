@@ -3,16 +3,20 @@ window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
      Leave it empty to preview the site with fake demo data. */
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxgmf8FR9gYZ2rfRB4adojraslcxDxrgxB5YgJg82v5sd7ZlEQG2r7ZIaxdircZ5YVX/exec',
+  apiUrl: '',
 
   brand: 'Armeet \u00B7 Psychologist',
 
-  /* One entry per location. Add a second entry to show a "choose where" step first.
+  /* Show a short location tag (the clinic's `short`) under each open date in the calendar. */
+  showLocationOnDates: true,
+
+  /* One entry per location. Add another entry and its days show in the same calendar, each tagged with its location.
      id must match the clinic id in apps-script/Code.gs. */
   clinics: [
     {
       id: 'lcr',
       label: 'Law College Road',
+      short: 'LCR',                 // tag shown under each open date
       address: 'Law College Road, Pune',
       daysLabel: 'Thursdays',
       payment: {
@@ -28,9 +32,7 @@ window.SITE = {
 
   text: {
     headings: {                       // [big heading, line under it]
-      clinic:    ['Take the first step.', 'Choose where you would like to meet.'],
-      timeFirst: ['Take the first step.', 'Choose a day and time that works for you.'],  // used when there is one clinic
-      time:      ['Choose a time.', 'Pick what works for you.'],
+      timeFirst: ['Take the first step.', 'Choose a day and time that works for you.'],
       details:   ['A little about you.', 'Only what is needed. Nothing more.'],
       pay:       ['Complete your payment.', 'Scan the code or tap the button.'],
       cancel:    ['Cancel your session.', 'Check the details below.'],

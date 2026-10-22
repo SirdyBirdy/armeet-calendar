@@ -12,6 +12,8 @@
   const fmtT = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const fmtBy = ms => new Date(ms).toLocaleString('en', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const istDate = ms => new Date(ms + 19800000).toISOString().slice(0, 10);
+  const place = id => SITE.clinics.find(c => c.id === id) || SITE.clinics[0];
+  const shortName = c => c.short || c.label.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   const policyHtml = () => `<ul>${T.policy.items.map(t => `<li>${t}</li>`).join('')}</ul><p>${T.policy.closing}</p>`;
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0 }); };
   const payee = (c, ds) => ({ ...c.payment, ...(c.payment.byDay && c.payment.byDay[fromKey(ds).getUTCDay() || 7]) });
@@ -34,23 +36,13 @@
   };
 
   /* ---------- state ---------- */
-  const SINGLE = SITE.clinics.length === 1;
-  const IDS = SINGLE ? [1, 2, 3, 4] : [0, 1, 2, 3, 4];
+  const IDS = [1, 2, 3, 4];
   const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '', moving: null };
   let busy = false;
-  const head = s => ({ 0: T.headings.clinic, 1: SINGLE ? T.headings.timeFirst : T.headings.time, 2: T.headings.details, 3: T.headings.pay, 5: T.headings.cancel })[s];
+  const head = s => ({ 1: T.headings.timeFirst, 2: T.headings.details, 3: T.headings.pay, 5: T.headings.cancel })[s];
   const formOk = () => $('#fn').value.trim() && /\S+@\S+\.\S+/.test($('#fe').value) && $('#fp').value.replace(/\D/g, '').length >= 10 && $('#fc').checked;
 
   /* ---------- render ---------- */
-  function renderClinics() {
-    $('#clinics').innerHTML = SITE.clinics.map((c, i) =>
-      `<button class="card" data-i="${i}"><h3>${c.label}</h3><p>${c.address}</p><div class="meta">${c.daysLabel}</div></button>`).join('');
-    $$('.card').forEach(b => b.onclick = () => {
-      S.clinic = SITE.clinics[b.dataset.i]; S.date = S.slot = null;
-      $$('.card').forEach(x => x.classList.toggle('sel', x === b)); upd();
-    });
-  }
-
   function setMonth() {
     const ds = S.date || Object.keys(S.avail.days).sort()[0] || S.avail.from;
     S.month = { y: +ds.slice(0, 4), m: +ds.slice(5, 7) - 1 };
@@ -68,9 +60,12 @@
     let h = 'SMTWTFS'.split('').map(d => `<b>${d}</b>`).join('') + '<span></span>'.repeat(first);
     for (let d = 1; d <= n; d++) {
       const ds = `${y}-${pad(m + 1)}-${pad(d)}`;
-      h += S.avail.days[ds]
-        ? `<button class="${S.date === ds ? 'sel' : ''}" data-d="${ds}" aria-label="${dayLong(ds)}">${d}</button>`
-        : `<span class="off">${d}</span>`;
+      const offered = S.avail.days[ds];
+      if (offered) {
+        const ids = [...new Set(offered.map(s => s.clinic))];
+        const tag = SITE.showLocationOnDates === false ? '' : `<small>${ids.length === 1 ? shortName(place(ids[0])) : ids.length + ' places'}</small>`;
+        h += `<button class="${S.date === ds ? 'sel' : ''}" data-d="${ds}" aria-label="${dayLong(ds)}, ${ids.map(id => place(id).label).join(' and ')}"><em>${d}</em>${tag}</button>`;
+      } else h += `<span class="off">${d}</span>`;
     }
     box.innerHTML = h;
     $$('#cal button').forEach(b => b.onclick = () => { S.date = b.dataset.d; S.slot = null; S.notice = ''; renderCal(); renderSlots(); upd(); });
@@ -82,24 +77,37 @@
   function renderSlots() {
     const box = $('#slots');
     if (!S.date) {
-      $('#dayLabel').textContent = 'Select a date';
+      $('#dayLabel').textContent = 'Select a date'; $('#dayPlace').textContent = '';
       box.innerHTML = S.avail && !S.avail.error && !Object.keys(S.avail.days).length ? `<p class="hint">${T.noTimes}</p>` : '';
       return;
     }
     $('#dayLabel').textContent = dayLong(S.date);
-    const list = S.avail.days[S.date] || [];
-    box.innerHTML = list.map((s, n) =>
-      `<button class="slot${S.slot && S.slot.i === s.i ? ' sel' : ''}" data-n="${n}">${fmtT(s.start)}<small>to ${fmtT(s.end)}</small></button>`).join('');
-    $$('.slot').forEach(b => b.onclick = () => { S.slot = list[b.dataset.n]; S.notice = ''; renderSlots(); upd(); });
+    const list = S.avail.days[S.date] || [], ids = [...new Set(list.map(s => s.clinic))];
+    $('#dayPlace').textContent = ids.length === 1 ? place(ids[0]).address : '';
+    box.innerHTML = ids.map(id =>
+      (ids.length > 1 ? `<p class="hint where">${place(id).address}</p>` : '') +
+      list.map((s, n) => s.clinic !== id ? '' :
+        `<button class="slot${S.slot && S.slot.i === s.i && S.slot.clinic === s.clinic ? ' sel' : ''}" data-n="${n}">${fmtT(s.start)}<small>to ${fmtT(s.end)}</small></button>`).join('')).join('');
+    $$('.slot').forEach(b => b.onclick = () => { S.slot = list[b.dataset.n]; S.clinic = place(S.slot.clinic); S.notice = ''; renderSlots(); upd(); });
   }
 
-  async function loadAvail() {
+  async function loadAvail() {   // every location at once, so each date can show where it is
     S.avail = null; renderCal(); renderSlots(); upd();
-    try { S.avail = await api.availability(S.clinic.id, S.moving); } catch (e) { S.avail = { error: e.message, days: {} }; }
+    const places = S.moving ? [S.booking.clinic] : SITE.clinics;
+    try {
+      const parts = await Promise.all(places.map(c => api.availability(c.id, S.moving)));
+      const days = {}, labels = {};
+      parts.forEach((p, k) => {
+        labels[places[k].id] = p.daysLabel !== undefined ? p.daysLabel : places[k].daysLabel;
+        Object.keys(p.days).forEach(ds => { (days[ds] = days[ds] || []).push(...p.days[ds].map(s => ({ ...s, clinic: places[k].id }))); });
+      });
+      Object.keys(days).forEach(ds => days[ds].sort((a, b) => a.start - b.start));
+      S.avail = { days, labels, from: parts[0].from, until: parts[0].until };
+    } catch (e) { S.avail = { error: e.message, days: {} }; }
     if (!S.avail.error) {
       const offered = S.date && S.avail.days[S.date];
       if (!offered) S.date = S.slot = null;
-      else if (S.slot) S.slot = offered.find(s => s.i === S.slot.i) || null;
+      else if (S.slot) S.slot = offered.find(s => s.i === S.slot.i && s.clinic === S.slot.clinic) || null;
       setMonth();
     }
     renderCal(); renderSlots(); upd();
@@ -113,10 +121,9 @@
     const last = S.s === 4;
     $('#title').style.display = $('#lead').style.display = last ? 'none' : '';
     const h = mv ? T.headings.reschedule : head(S.s); if (h) { $('#title').textContent = h[0]; $('#lead').textContent = h[1]; }
-    if (S.clinic) {
-      $('#sum1').textContent = `${(S.avail && S.avail.daysLabel) || S.clinic.daysLabel} \u00B7 ${S.clinic.address}`;
-      if (S.slot) $('#sum2').textContent = `${dayShort(S.date)} at ${fmtT(S.slot.start)} \u00B7 ${S.clinic.address}`;
-    }
+    const shown = (S.moving ? [S.booking.clinic] : SITE.clinics).filter(c => !S.avail || !S.avail.labels || S.avail.labels[c.id]);
+    $('#sum1').textContent = shown.map(c => `${(S.avail && S.avail.labels && S.avail.labels[c.id]) || c.daysLabel} \u00B7 ${c.address}`).join('\n');
+    if (S.clinic && S.slot) $('#sum2').textContent = `${dayShort(S.date)} at ${fmtT(S.slot.start)} \u00B7 ${S.clinic.address}`;
     $('#notice').textContent = S.s === 1 ? S.notice : '';
     const early = S.s <= 2;
     $('#bar').style.display = early ? 'flex' : 'none';
@@ -278,6 +285,5 @@
   const qs = new URLSearchParams(location.search);
   if (qs.get('cancel')) cancelView(qs.get('cancel'), qs.get('t') || '');
   else if (qs.get('pay')) payView(qs.get('pay'), qs.get('t') || '');
-  else if (SINGLE) { S.clinic = SITE.clinics[0]; goto(1); }
-  else { S.s = 0; renderClinics(); upd(); }
+  else goto(1);
 })();
