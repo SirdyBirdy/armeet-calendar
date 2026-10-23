@@ -12,7 +12,7 @@
   const fmtT = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const fmtBy = ms => new Date(ms).toLocaleString('en', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const istDate = ms => new Date(ms + 19800000).toISOString().slice(0, 10);
-  const place = id => SITE.clinics.find(c => c.id === id) || SITE.clinics[0];
+  const place = id => SITE.clinics.find(c => c.id === id || (c.aliases || []).includes(id)) || SITE.clinics[0];
   const shortName = c => c.short || c.label.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   const policyHtml = () => `<ul>${T.policy.items.map(t => `<li>${t}</li>`).join('')}</ul><p>${T.policy.closing}</p>`;
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0 }); };
@@ -231,7 +231,7 @@
       $('#cx-info').textContent = `${dayLong(istDate(r.start))}, ${fmtT(r.start)} to ${fmtT(r.end)}. ${r.address}. ` +
         (r.hoursLeft > 0 ? `That is about ${hrs} ${hrs === 1 ? 'hour' : 'hours'} from now.` : 'This session has already started.');
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), payBy: r.payBy, paid: r.paid,
-        clinic: SITE.clinics.find(c => c.id === r.clinic) || SITE.clinics[0] };
+        clinic: place(r.clinic) };
       $('#cx-move').hidden = !r.canReschedule; $('#cx-note').hidden = r.canReschedule; $('#cx-note').textContent = T.rescheduleLate;
       $('#cx-btn').disabled = false;
     } catch (e) { $('#cx-info').textContent = e.message; }
@@ -250,7 +250,7 @@
   async function payView(id, t) {
     try {
       const r = await api.lookup(id, t);
-      const clinic = SITE.clinics.find(c => c.id === r.clinic) || SITE.clinics[0];
+      const clinic = place(r.clinic);
       S.clinic = clinic;
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), clinic, payBy: r.payBy };
       if (r.paid) { goto(4); $('#thanksbody').textContent = T.alreadyPaid; $('#nexttitle').parentNode.hidden = true; }

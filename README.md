@@ -5,7 +5,7 @@ A static booking page (GitHub Pages) that reads and writes your Google Calendar 
 How a booking works:
 
 1. The client picks a day and time. The page only offers slots that leave no gap (see "Slot rule").
-2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name with Namaste Psychology (LCR)`. Their email has a link back to the payment screen, your Paytm number, and the time the hold ends.
+2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name (PR)`. Their email has a link back to the payment screen, your Paytm number, and the time the hold ends.
 3. The client pays by UPI (QR or button), then taps **I've paid**. You get an email.
 4. You check Paytm and turn the calendar event green. That is your confirmation.
 
@@ -27,7 +27,16 @@ apps-script/appsscript.json   Apps Script settings (time zone, web app access)
 
 ## Slot rule
 
-Law College Road, Thursday, 10am to 2pm, four one-hour slots, no buffer.
+Slots are set one by one in the **Slots** tab of the Booking settings sheet (columns: Location, Day, From, To, On). One row per slot, so any length and any gap works.
+
+Starting slots, created by running `seedSlots` once:
+
+- Prabhat Road (`pr`), Thursdays: 10-11, 11-12, 12-1, 1-2.
+- NIBM (`nibm`), Mondays: 11:00-11:50, 12:05-12:55, 1:10-2:00, 2:30-3:20, 3:35-4:25.
+
+Once the Slots tab exists it decides everything: a location with no rows has no open slots. Before the tab exists, the old Availability tab (hours plus buffer) is used, then the days in `Code.gs`. The admin Availability tab edits Slots: per location, per day, add or remove single slots, switch each on or off, then Save. Old bookings tagged `lcr` map to Prabhat Road (`legacy` in `CFG`).
+
+The no-gap rule below is unchanged. Neighbours are the slots next to each other in the day's list. Set `mode: 'open'` on a location in `Code.gs` to offer every free slot instead.
 
 | Already booked | Offered |
 |---|---|
@@ -76,7 +85,7 @@ Choose `testAvailability` in the dropdown and click **Run**. The Execution log p
 2. Click the gear beside "Select type" and choose **Web app**.
 3. Description: `v1`. **Execute as**: Me. **Who has access**: Anyone.
 4. Click **Deploy**, then copy the **Web app URL** (it ends in `/exec`).
-5. Test it: paste the URL into a browser tab and add `?action=availability&clinic=lcr` to the end. You should see the same JSON as in step 2.4.
+5. Test it: paste the URL into a browser tab and add `?action=availability&clinic=pr` to the end. You should see the same JSON as in step 2.4.
 
 "Anyone" is required so your site can call it. It does not give anyone access to your calendar. They can only use the actions in `Code.gs`.
 
@@ -105,7 +114,7 @@ The phone number and UPI link in `js/config.js` are public because they are the 
 
 ## 5. Test it end to end
 
-1. Book a slot with your own email. A yellow event titled `Your Name with Namaste Psychology (LCR)` appears in your calendar, and you get the confirmation email.
+1. Book a slot with your own email. A yellow event titled `Your Name (PR)` appears in your calendar, and you get the confirmation email.
 2. Reload the page. The slots left should follow the slot rule.
 3. Tap **I've paid**. You get a "Payment claimed" email.
 4. Turn the event green (Basil) to confirm it.
@@ -190,7 +199,7 @@ There are no API keys. The only value that connects the two halves is the Web ap
 
 | Problem | Fix |
 |---|---|
-| Page says it could not load times | Open the Web app URL with `?action=availability&clinic=lcr`. If you get a Google sign-in page, redeploy with **Who has access: Anyone**. Make sure `apiUrl` ends in `/exec`, not `/dev`. |
+| Page says it could not load times | Open the Web app URL with `?action=availability&clinic=pr`. If you get a Google sign-in page, redeploy with **Who has access: Anyone**. Make sure `apiUrl` ends in `/exec`, not `/dev`. |
 | Changes to `Code.gs` have no effect | Redeploy a new version (step 2.7). |
 | No emails arrive | Run `authorize` again and accept the prompts. Check spam. Free Google accounts can send about 100 emails a day. |
 | A day shows no slots | An event overlaps every slot (check for all-day events), or the day is less than 24 hours away. |
