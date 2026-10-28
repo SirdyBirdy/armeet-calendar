@@ -1,4 +1,4 @@
-/* Booking flow logic. Wording and clinic details live in config.js. */
+/* Booking flow logic. Wording and payment live in config.js. Locations and times come from the admin. */
 (() => {
   'use strict';
   const SITE = window.SITE, T = SITE.text, TZ = 'Asia/Kolkata';
@@ -12,11 +12,13 @@
   const fmtT = ms => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const fmtBy = ms => new Date(ms).toLocaleString('en', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\u202f/g, ' ');
   const istDate = ms => new Date(ms + 19800000).toISOString().slice(0, 10);
-  const place = id => SITE.clinics.find(c => c.id === id || (c.aliases || []).includes(id)) || SITE.clinics[0];
-  const shortName = c => c.short || c.label.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  // A location is whatever name was typed in the admin. Short, address and weekday label come from the server.
+  const mkPlace = (id, p) => { p = p || {}; return { id: id, label: p.label || id, address: p.address || id, short: p.short || id, when: p.when || '' }; };
+  const place = id => mkPlace(id, S.avail && S.avail.places && S.avail.places[id]);
+  const where = c => c.address.toLowerCase().indexOf(c.label.toLowerCase()) >= 0 ? c.address : c.label + ', ' + c.address;
   const policyHtml = () => `<ul>${T.policy.items.map(t => `<li>${t}</li>`).join('')}</ul><p>${T.policy.closing}</p>`;
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0 }); };
-  const payee = (c, ds) => ({ ...c.payment, ...(c.payment.byDay && c.payment.byDay[fromKey(ds).getUTCDay() || 7]) });
+  const payee = () => SITE.payment;
 
   /* ---------- API (falls back to demo data while apiUrl is empty) ---------- */
   const api = {
@@ -26,9 +28,9 @@
       if (r.error) throw Object.assign(new Error(r.error), { code: r.code });
       return r;
     },
-    availability: (id, mv) => SITE.apiUrl
-      ? api.call(`${SITE.apiUrl}?action=availability&clinic=${encodeURIComponent(id)}` + (mv ? `&id=${encodeURIComponent(mv.id)}&t=${encodeURIComponent(mv.token)}` : ''))
-      : demo.availability(id, mv),
+    availability: mv => SITE.apiUrl
+      ? api.call(`${SITE.apiUrl}?action=availability` + (mv ? `&id=${encodeURIComponent(mv.id)}&t=${encodeURIComponent(mv.token)}` : ''))
+      : demo.availability(mv),
     lookup: (id, t) => SITE.apiUrl ? api.call(`${SITE.apiUrl}?action=lookup&id=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`) : demo.lookup(),
     post: body => SITE.apiUrl
       ? api.call(SITE.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
@@ -63,7 +65,7 @@
       const offered = S.avail.days[ds];
       if (offered) {
         const ids = [...new Set(offered.map(s => s.clinic))];
-        const tag = SITE.showLocationOnDates === false ? '' : `<small>${ids.length === 1 ? shortName(place(ids[0])) : ids.length + ' places'}</small>`;
+        const tag = SITE.showLocationOnDates === false ? '' : `<small>${ids.length === 1 ? place(ids[0]).short : ids.length + ' places'}</small>`;
         h += `<button class="${S.date === ds ? 'sel' : ''}" data-d="${ds}" aria-label="${dayLong(ds)}, ${ids.map(id => place(id).label).join(' and ')}"><em>${d}</em>${tag}</button>`;
       } else h += `<span class="off">${d}</span>`;
     }
@@ -83,9 +85,9 @@
     }
     $('#dayLabel').textContent = dayLong(S.date);
     const list = S.avail.days[S.date] || [], ids = [...new Set(list.map(s => s.clinic))];
-    $('#dayPlace').textContent = ids.length === 1 ? place(ids[0]).address : '';
+    $('#dayPlace').textContent = ids.length === 1 ? where(place(ids[0])) : '';
     box.innerHTML = ids.map(id =>
-      (ids.length > 1 ? `<p class="hint where">${place(id).address}</p>` : '') +
+      (ids.length > 1 ? `<p class="hint where">${where(place(id))}</p>` : '') +
       list.map((s, n) => s.clinic !== id ? '' :
         `<button class="slot${S.slot && S.slot.i === s.i && S.slot.clinic === s.clinic ? ' sel' : ''}" data-n="${n}">${fmtT(s.start)}<small>to ${fmtT(s.end)}</small></button>`).join('')).join('');
     $$('.slot').forEach(b => b.onclick = () => { S.slot = list[b.dataset.n]; S.clinic = place(S.slot.clinic); S.notice = ''; renderSlots(); upd(); });
@@ -93,16 +95,9 @@
 
   async function loadAvail() {   // every location at once, so each date can show where it is
     S.avail = null; renderCal(); renderSlots(); upd();
-    const places = S.moving ? [S.booking.clinic] : SITE.clinics;
     try {
-      const parts = await Promise.all(places.map(c => api.availability(c.id, S.moving)));
-      const days = {}, labels = {};
-      parts.forEach((p, k) => {
-        labels[places[k].id] = p.daysLabel !== undefined ? p.daysLabel : places[k].daysLabel;
-        Object.keys(p.days).forEach(ds => { (days[ds] = days[ds] || []).push(...p.days[ds].map(s => ({ ...s, clinic: places[k].id }))); });
-      });
-      Object.keys(days).forEach(ds => days[ds].sort((a, b) => a.start - b.start));
-      S.avail = { days, labels, from: parts[0].from, until: parts[0].until };
+      const p = await api.availability(S.moving);
+      S.avail = { days: p.days, places: p.places || {}, from: p.from, until: p.until };
     } catch (e) { S.avail = { error: e.message, days: {} }; }
     if (!S.avail.error) {
       const offered = S.date && S.avail.days[S.date];
@@ -121,9 +116,9 @@
     const last = S.s === 4;
     $('#title').style.display = $('#lead').style.display = last ? 'none' : '';
     const h = mv ? T.headings.reschedule : head(S.s); if (h) { $('#title').textContent = h[0]; $('#lead').textContent = h[1]; }
-    const shown = (S.moving ? [S.booking.clinic] : SITE.clinics).filter(c => !S.avail || !S.avail.labels || S.avail.labels[c.id]);
-    $('#sum1').textContent = shown.map(c => `${(S.avail && S.avail.labels && S.avail.labels[c.id]) || c.daysLabel} \u00B7 ${c.address}`).join('\n');
-    if (S.clinic && S.slot) $('#sum2').textContent = `${dayShort(S.date)} at ${fmtT(S.slot.start)} \u00B7 ${S.clinic.address}`;
+    const pl = S.avail && S.avail.places ? Object.keys(S.avail.places).map(place) : [];
+    $('#sum1').textContent = pl.map(c => [c.when, where(c)].filter(Boolean).join(' \u00B7 ')).join('\n');
+    if (S.clinic && S.slot) $('#sum2').textContent = `${dayShort(S.date)} at ${fmtT(S.slot.start)} \u00B7 ${where(S.clinic)}`;
     $('#notice').textContent = S.s === 1 ? S.notice : '';
     const early = S.s <= 2;
     $('#bar').style.display = early ? 'flex' : 'none';
@@ -159,7 +154,7 @@
 
   function renderPay() {
     const b = S.booking, p = payee(b.clinic, b.date);
-    $('#sum3').textContent = `${dayShort(b.date)} \u00B7 ${fmtT(b.start)} to ${fmtT(b.end)} \u00B7 ${b.clinic.address}`;
+    $('#sum3').textContent = `${dayShort(b.date)} \u00B7 ${fmtT(b.start)} to ${fmtT(b.end)} \u00B7 ${where(b.clinic)}`;
     const link = p.link || `upi://pay?pa=${p.vpa}&pn=${encodeURIComponent(p.name)}&cu=INR`;
     $('#pay').innerHTML = `<div class="qr">${p.qrImage ? `<img id="qrimg" src="${p.qrImage}" alt="UPI QR code">` : qrSvg(link)}</div>
       ${p.caption ? `<p class="cap">${p.caption}</p>` : ''}
@@ -175,7 +170,7 @@
     const b = S.booking, z = ms => new Date(ms).toISOString().replace(/[-:]|\.\d+/g, '');
     $('#nexttitle').parentNode.hidden = false;
     $('#thanks').textContent = T.thanks.title;
-    $('#sum4').textContent = `${dayLong(b.date)}, ${fmtT(b.start)} to ${fmtT(b.end)}. ${b.clinic.address}.`;
+    $('#sum4').textContent = `${dayLong(b.date)}, ${fmtT(b.start)} to ${fmtT(b.end)}. ${where(b.clinic)}.`;
     $('#thanksbody').textContent = T.thanks.body;
     $('#nexttitle').textContent = T.thanks.nextTitle;
     $('#nextstep').textContent = T.payNote;
@@ -228,10 +223,10 @@
     try {
       const r = await api.lookup(id, t);
       const hrs = Math.round(r.hoursLeft);
-      $('#cx-info').textContent = `${dayLong(istDate(r.start))}, ${fmtT(r.start)} to ${fmtT(r.end)}. ${r.address}. ` +
+      $('#cx-info').textContent = `${dayLong(istDate(r.start))}, ${fmtT(r.start)} to ${fmtT(r.end)}. ${where(mkPlace(r.clinic, { address: r.address }))}. ` +
         (r.hoursLeft > 0 ? `That is about ${hrs} ${hrs === 1 ? 'hour' : 'hours'} from now.` : 'This session has already started.');
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), payBy: r.payBy, paid: r.paid,
-        clinic: place(r.clinic) };
+        clinic: mkPlace(r.clinic, { address: r.address, short: r.short }) };
       $('#cx-move').hidden = !r.canReschedule; $('#cx-note').hidden = r.canReschedule; $('#cx-note').textContent = T.rescheduleLate;
       $('#cx-btn').disabled = false;
     } catch (e) { $('#cx-info').textContent = e.message; }
@@ -250,7 +245,7 @@
   async function payView(id, t) {
     try {
       const r = await api.lookup(id, t);
-      const clinic = place(r.clinic);
+      const clinic = mkPlace(r.clinic, { address: r.address, short: r.short });
       S.clinic = clinic;
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), clinic, payBy: r.payBy };
       if (r.paid) { goto(4); $('#thanksbody').textContent = T.alreadyPaid; $('#nexttitle').parentNode.hidden = true; }

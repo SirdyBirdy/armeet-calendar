@@ -27,16 +27,16 @@ apps-script/appsscript.json   Apps Script settings (time zone, web app access)
 
 ## Slot rule
 
-Slots are set one by one in the **Slots** tab of the Booking settings sheet (columns: Location, Day, From, To, On). One row per slot, so any length and any gap works.
+Locations and slots are set in the admin Availability tab and stored in two tabs of the Booking settings sheet.
 
-Starting slots, created by running `seedSlots` once:
+- **Location:** free text. Type any name (Prabhat Road, NIBM, Online) and it shows on the booking page exactly as typed. Optional Short name (calendar title and the tag under each date), Address or note (emails and the calendar event, for example a meeting link for online sessions) and Booking style (No gaps, or All free slots). Short and Address default to the name.
+- **Slots:** one row per slot. A slot is either weekly (a weekday) or for a single date, so an erratic schedule works. Any length, any gap.
 
-- Prabhat Road (`pr`), Thursdays: 10-11, 11-12, 12-1, 1-2.
-- NIBM (`nibm`), Mondays: 11:00-11:50, 12:05-12:55, 1:10-2:00, 2:30-3:20, 3:35-4:25.
+Sheet layout: `Slots` is Location, Day (1 = Monday), Date (2026-11-05), From, To, On. `Locations` is Location, Short, Address, Style. Run `seedSlots` once in the public script to create both tabs with Prabhat Road Thursdays and NIBM Mondays, or just open the admin Availability tab, review the starting rows and press Save.
 
-Once the Slots tab exists it decides everything: a location with no rows has no open slots. Before the tab exists, the old Availability tab (hours plus buffer) is used, then the days in `Code.gs`. The admin Availability tab edits Slots: per location, per day, add or remove single slots, switch each on or off, then Save. Old bookings tagged `lcr` map to Prabhat Road (`legacy` in `CFG`).
+Once the Slots tab exists it decides everything: a location with no slots has no open times. Old bookings tagged `lcr` map to Prabhat Road (`legacy` in `CFG`). Payment details are the same for every location and live in `js/config.js`.
 
-The no-gap rule below is unchanged. Neighbours are the slots next to each other in the day's list. Set `mode: 'open'` on a location in `Code.gs` to offer every free slot instead.
+The no-gap rule below is unchanged. Neighbours are the slots next to each other in the day's list. Set a location's booking style to All free slots in the admin to offer every free slot instead.
 
 | Already booked | Offered |
 |---|---|

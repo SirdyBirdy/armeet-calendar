@@ -1,4 +1,4 @@
-/* Everything you are likely to edit lives in this file: wording, clinic details, payment. */
+/* Everything you are likely to edit lives in this file: wording and payment. */
 window.SITE = {
 
   /* Paste the Apps Script Web app URL here (it ends in /exec).
@@ -7,38 +7,17 @@ window.SITE = {
 
   brand: 'Armeet \u00B7 Psychologist',
 
-  /* Show a short location tag (the clinic's `short`) under each open date in the calendar. */
+  /* Show the location's short name under each open date in the calendar. */
   showLocationOnDates: true,
 
-  /* One entry per location. Add another entry and its days show in the same calendar, each tagged with its location.
-     id must match the clinic id in Code.gs. */
-  clinics: [
-    {
-      id: 'pr',
-      aliases: ['lcr'],               // old bookings tagged lcr show as this location
-      label: 'Prabhat Road',
-      short: 'PR',                    // tag shown under each open date
-      address: 'Prabhat Road, Pune',
-      daysLabel: 'Thursdays',
-      payment: {
-        caption: 'Namaste Psychology \u00B7 89561 49681',
-        qrImage: 'np-qr.png',   // file next to index.html; if missing, a QR is generated from the link below
-        link: 'upi://pay?pa=paytmqr2810050501011jk4o5trzpm3@paytm&pn=Paytm%20Merchant&paytmqr=2810050501011JK4O5TRZPM3',
-      },
-    },
-    {
-      id: 'nibm',
-      label: 'NIBM',
-      short: 'NIBM',
-      address: 'NIBM, Pune',
-      daysLabel: 'Mondays',
-      payment: {
-        caption: 'Namaste Psychology \u00B7 89561 49681',
-        qrImage: 'np-qr.png',
-        link: 'upi://pay?pa=paytmqr2810050501011jk4o5trzpm3@paytm&pn=Paytm%20Merchant&paytmqr=2810050501011JK4O5TRZPM3',
-      },
-    },
-  ],
+  /* Locations are not set here. Type them in the admin Availability tab and they show on this page exactly as typed. */
+
+  /* Payment shown after booking. Same for every location. */
+  payment: {
+    caption: 'Namaste Psychology \u00B7 89561 49681',
+    qrImage: 'np-qr.png',   // file next to index.html; if missing, a QR is generated from the link below
+    link: 'upi://pay?pa=paytmqr2810050501011jk4o5trzpm3@paytm&pn=Paytm%20Merchant&paytmqr=2810050501011JK4O5TRZPM3',
+  },
 
   text: {
     headings: {                       // [big heading, line under it]
