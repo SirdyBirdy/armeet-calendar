@@ -57,6 +57,7 @@ window.SITE = {
     cancelled: ['Session cancelled.', 'Any refund or credit follows the cancellation & payment policy.'],
     alreadyPaid: 'Your payment is confirmed. See you then.',
     payLinkInvalid: ['Booking not found.', 'This link is no longer valid. Your slot may have been released. You are welcome to book a new time.'],
+    noLink: ['Use your booking link.', 'Please open the booking link I sent you. It is specific to your location.'],
     noTimes: 'No times are open right now. Please check back soon.',
     taken: 'That time was just taken. Here are the times still open.',
     errorLoad: 'Could not load times. Reload the page to try again.',

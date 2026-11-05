@@ -46,7 +46,7 @@ window.demo = (() => {
   const parse = id => { const [, clinic, ds, i] = String(id).split('|'); return { clinic, ds, i: Number(i) }; };
 
   return {
-    availability(mv) {
+    availability(mv, loc) {
       const days = {}, places = {};
       let restore;   // when moving a booking, its own slot counts as free
       let only = null;
@@ -55,7 +55,7 @@ window.demo = (() => {
         only = o.clinic;
         if (set && set.delete(o.i)) restore = () => set.add(o.i);
       }
-      Object.keys(PLACES).filter(id => !only || id === only).forEach(id => {
+      Object.keys(PLACES).filter(id => only ? id === only : !loc || nameOf(id).toLowerCase().replace(/[^a-z0-9]+/g, '-') === loc).forEach(id => {
         (dates[id] || []).forEach(ds => {
           const o = offers(id, ds);
           if (!o.length) return;

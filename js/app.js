@@ -29,8 +29,8 @@
       return r;
     },
     availability: mv => SITE.apiUrl
-      ? api.call(`${SITE.apiUrl}?action=availability` + (mv ? `&id=${encodeURIComponent(mv.id)}&t=${encodeURIComponent(mv.token)}` : ''))
-      : demo.availability(mv),
+      ? api.call(`${SITE.apiUrl}?action=availability&loc=${encodeURIComponent(LOC)}` + (mv ? `&id=${encodeURIComponent(mv.id)}&t=${encodeURIComponent(mv.token)}` : ''))
+      : demo.availability(mv, LOC),
     lookup: (id, t) => SITE.apiUrl ? api.call(`${SITE.apiUrl}?action=lookup&id=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`) : demo.lookup(),
     post: body => SITE.apiUrl
       ? api.call(SITE.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
@@ -39,6 +39,8 @@
 
   /* ---------- state ---------- */
   const IDS = [1, 2, 3, 4];
+  let LOC = '';   // the location slug from the booking link (?loc=prabhat-road)
+  const slug = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '', moving: null };
   let busy = false;
   const head = s => ({ 1: T.headings.timeFirst, 2: T.headings.details, 3: T.headings.pay, 5: T.headings.cancel })[s];
@@ -140,7 +142,7 @@
     busy = true; $('#err').textContent = ''; upd();
     try {
       const r = await api.post({
-        action: 'book', clinic: S.clinic.id, date: S.date, i: S.slot.i,
+        action: 'book', clinic: S.clinic.id, loc: LOC, date: S.date, i: S.slot.i,
         name: $('#fn').value.trim(), email: $('#fe').value.trim(), phone: $('#fp').value.trim(), notes: $('#fm').value.trim(), website: $('#hp').value,
       });
       S.booking = { ...r, date: S.date, clinic: S.clinic };
@@ -227,6 +229,7 @@
         (r.hoursLeft > 0 ? `That is about ${hrs} ${hrs === 1 ? 'hour' : 'hours'} from now.` : 'This session has already started.');
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), payBy: r.payBy, paid: r.paid,
         clinic: mkPlace(r.clinic, { address: r.address, short: r.short }) };
+      LOC = slug(r.clinic);
       $('#cx-move').hidden = !r.canReschedule; $('#cx-note').hidden = r.canReschedule; $('#cx-note').textContent = T.rescheduleLate;
       $('#cx-btn').disabled = false;
     } catch (e) { $('#cx-info').textContent = e.message; }
@@ -236,7 +239,7 @@
         await api.post({ action: 'cancel', id, token: t });
         $('#title').textContent = T.cancelled[0]; $('#lead').textContent = T.cancelled[1];
         $('#cx-info').textContent = ''; e.target.hidden = true; $('#cx-move').hidden = true; $('#cx-note').hidden = true;
-        const l = $('#cx-link'); l.hidden = false; l.href = location.pathname;
+        const l = $('#cx-link'); l.hidden = false; l.href = location.pathname + (LOC ? '?loc=' + LOC : '');
       } catch (err) { e.target.disabled = false; $('#cx-err').textContent = err.message; }
     };
   }
@@ -246,7 +249,7 @@
     try {
       const r = await api.lookup(id, t);
       const clinic = mkPlace(r.clinic, { address: r.address, short: r.short });
-      S.clinic = clinic;
+      S.clinic = clinic; LOC = slug(r.clinic);
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), clinic, payBy: r.payBy };
       if (r.paid) { goto(4); $('#thanksbody').textContent = T.alreadyPaid; $('#nexttitle').parentNode.hidden = true; }
       else goto(3);
@@ -256,6 +259,13 @@
       $('#cx-info').textContent = ''; $('#cx-btn').hidden = true; $('#pol3').parentNode.hidden = true;
       const l = $('#cx-link'); l.hidden = false; l.href = location.pathname;
     }
+  }
+
+  /* ---------- a link without a location ---------- */
+  function noLinkView() {
+    S.s = 5; upd();
+    $('#title').textContent = T.noLink[0]; $('#lead').textContent = T.noLink[1];
+    $('#cx-info').textContent = ''; $('#cx-btn').hidden = true; $('#cx-move').hidden = true; $('#cx-note').hidden = true; $('#cx-link').hidden = true; $('#pol3').parentNode.hidden = true;
   }
 
   /* ---------- wiring ---------- */
@@ -278,7 +288,9 @@
   if (!SITE.apiUrl) { const d = document.createElement('div'); d.className = 'demo'; d.textContent = 'Demo data. Set apiUrl in js/config.js.'; document.body.append(d); }
 
   const qs = new URLSearchParams(location.search);
+  LOC = (qs.get('loc') || '').toLowerCase();
   if (qs.get('cancel')) cancelView(qs.get('cancel'), qs.get('t') || '');
   else if (qs.get('pay')) payView(qs.get('pay'), qs.get('t') || '');
+  else if (!LOC && SITE.apiUrl) noLinkView();
   else goto(1);
 })();

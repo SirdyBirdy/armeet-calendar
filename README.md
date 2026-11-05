@@ -34,6 +34,8 @@ Locations and slots are set in the admin Availability tab and stored in two tabs
 
 Sheet layout: `Slots` is Location, Day (1 = Monday), Date (2026-11-05), From, To, On. `Locations` is Location, Short, Address, Style. Run `seedSlots` once in the public script to create both tabs with Prabhat Road Thursdays and NIBM Mondays, or just open the admin Availability tab, review the starting rows and press Save.
 
+**One link per location.** Each location has its own booking link, `<site>?loc=<name-in-lower-case-with-dashes>`, for example `?loc=prabhat-road`. The admin Availability tab shows the link on each location card with a Copy button. A link shows only that location's dates and slots, and the server refuses bookings for any other location through it. A link with no location shows a short "use your booking link" message and no times. There is no location picker: you share each link yourself. Pay, cancel and reschedule links from emails are unaffected, and rescheduling only offers the same location.
+
 Once the Slots tab exists it decides everything: a location with no slots has no open times. Old bookings tagged `lcr` map to Prabhat Road (`legacy` in `CFG`). Payment details are the same for every location and live in `js/config.js`.
 
 The no-gap rule below is unchanged. Neighbours are the slots next to each other in the day's list. Set a location's booking style to All free slots in the admin to offer every free slot instead.
