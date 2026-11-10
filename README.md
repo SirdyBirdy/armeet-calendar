@@ -5,7 +5,7 @@ A static booking page (GitHub Pages) that reads and writes your Google Calendar 
 How a booking works:
 
 1. The client picks a day and time. The page only offers slots that leave no gap (see "Slot rule").
-2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name (PR)`. Their email has a link back to the payment screen, your Paytm number, and the time the hold ends.
+2. The client enters their details. The slot is held and a yellow event appears in your calendar, titled `Name with Namaste Psychology (PR)`. Their email has a link back to the payment screen, your Paytm number, and the time the hold ends.
 3. The client pays by UPI (QR or button), then taps **I've paid**. You get an email.
 4. You check Paytm and turn the calendar event green. That is your confirmation.
 
@@ -35,6 +35,8 @@ Locations and slots are set in the admin Availability tab and stored in two tabs
 Sheet layout: `Slots` is Location, Day (1 = Monday), Date (2026-11-05), From, To, On. `Locations` is Location, Short, Address, Style. Run `seedSlots` once in the public script to create both tabs with Prabhat Road Thursdays and NIBM Mondays, or just open the admin Availability tab, review the starting rows and press Save.
 
 **One link per location.** Each location has its own booking link, `<site>?loc=<name-in-lower-case-with-dashes>`, for example `?loc=prabhat-road`. The admin Availability tab shows the link on each location card with a Copy button. A link shows only that location's dates and slots, and the server refuses bookings for any other location through it. A link with no location shows a short "use your booking link" message and no times. There is no location picker: you share each link yourself. Pay, cancel and reschedule links from emails are unaffected, and rescheduling only offers the same location.
+
+**Two payees.** A booking link picks whose payment details the client sees: `?loc=prabhat-road&for=namaste` (Namaste QR, calendar title "Name with Namaste Psychology (PR)") or `?loc=prabhat-road&for=armeet` (your own QR, title "Name (PR)"). A link without `&for=` uses `defaultPractice` (Namaste). The admin Availability tab shows both links on each location card. The choice is stored on the booking, so the payment page, emails and the WhatsApp payment reminder keep using the right details. Edit the payees in `practices` in both `Code.gs` files and `payments` in `js/config.js`; the QR images are `np-qr.png` (Namaste) and `qr-armeet.png` (yours) next to `index.html`.
 
 Once the Slots tab exists it decides everything: a location with no slots has no open times. Old bookings tagged `lcr` map to Prabhat Road (`legacy` in `CFG`). Payment details are the same for every location and live in `js/config.js`.
 
@@ -116,7 +118,7 @@ The phone number and UPI link in `js/config.js` are public because they are the 
 
 ## 5. Test it end to end
 
-1. Book a slot with your own email. A yellow event titled `Your Name (PR)` appears in your calendar, and you get the confirmation email.
+1. Book a slot with your own email. A yellow event titled `Your Name with Namaste Psychology (PR)` appears in your calendar, and you get the confirmation email.
 2. Reload the page. The slots left should follow the slot rule.
 3. Tap **I've paid**. You get a "Payment claimed" email.
 4. Turn the event green (Basil) to confirm it.

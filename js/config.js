@@ -12,11 +12,20 @@ window.SITE = {
 
   /* Locations are not set here. Type them in the admin Availability tab and they show on this page exactly as typed. */
 
-  /* Payment shown after booking. Same for every location. */
-  payment: {
-    caption: 'Namaste Psychology \u00B7 89561 49681',
-    qrImage: 'np-qr.png',   // file next to index.html; if missing, a QR is generated from the link below
-    link: 'upi://pay?pa=paytmqr2810050501011jk4o5trzpm3@paytm&pn=Paytm%20Merchant&paytmqr=2810050501011JK4O5TRZPM3',
+  /* Payment shown after booking, one entry per practice. The booking link picks it: add &for=<key>, for example
+     ?loc=prabhat-road&for=armeet. The keys must match `practices` in the booking script's Code.gs. */
+  defaultPractice: 'namaste',   // used when a booking link has no &for=
+  payments: {
+    namaste: {
+      caption: 'Namaste Psychology \u00B7 89561 49681',
+      qrImage: 'np-qr.png',   // file next to index.html; if missing, a QR is generated from the link below
+      link: 'upi://pay?pa=paytmqr5gsmuv@ptys&pn=Namaste%20Psychology&cu=INR',
+    },
+    armeet: {
+      caption: 'Armeet Narang \u00B7 narangarmeet@okhdfcbank',
+      qrImage: 'qr-armeet.png',
+      link: 'upi://pay?pa=narangarmeet@okhdfcbank&pn=Armeet%20Narang&cu=INR',
+    },
   },
 
   text: {

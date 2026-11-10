@@ -18,7 +18,7 @@
   const where = c => c.address.toLowerCase().indexOf(c.label.toLowerCase()) >= 0 ? c.address : c.label + ', ' + c.address;
   const policyHtml = () => `<ul>${T.policy.items.map(t => `<li>${t}</li>`).join('')}</ul><p>${T.policy.closing}</p>`;
   const qrSvg = text => { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0 }); };
-  const payee = () => SITE.payment;
+  const payee = () => SITE.payments[PRACTICE] || SITE.payments[SITE.defaultPractice];
 
   /* ---------- API (falls back to demo data while apiUrl is empty) ---------- */
   const api = {
@@ -39,6 +39,7 @@
 
   /* ---------- state ---------- */
   const IDS = [1, 2, 3, 4];
+  let PRACTICE = SITE.defaultPractice;   // whose payment details to show (?for=namaste or ?for=armeet)
   let LOC = '';   // the location slug from the booking link (?loc=prabhat-road)
   const slug = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const S = { s: 1, clinic: null, avail: null, date: null, slot: null, month: null, booking: null, notice: '', moving: null };
@@ -142,7 +143,7 @@
     busy = true; $('#err').textContent = ''; upd();
     try {
       const r = await api.post({
-        action: 'book', clinic: S.clinic.id, loc: LOC, date: S.date, i: S.slot.i,
+        action: 'book', clinic: S.clinic.id, loc: LOC, practice: PRACTICE, date: S.date, i: S.slot.i,
         name: $('#fn').value.trim(), email: $('#fe').value.trim(), phone: $('#fp').value.trim(), notes: $('#fm').value.trim(), website: $('#hp').value,
       });
       S.booking = { ...r, date: S.date, clinic: S.clinic };
@@ -229,7 +230,7 @@
         (r.hoursLeft > 0 ? `That is about ${hrs} ${hrs === 1 ? 'hour' : 'hours'} from now.` : 'This session has already started.');
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), payBy: r.payBy, paid: r.paid,
         clinic: mkPlace(r.clinic, { address: r.address, short: r.short }) };
-      LOC = slug(r.clinic);
+      LOC = slug(r.clinic); if (SITE.payments[r.practice]) PRACTICE = r.practice;
       $('#cx-move').hidden = !r.canReschedule; $('#cx-note').hidden = r.canReschedule; $('#cx-note').textContent = T.rescheduleLate;
       $('#cx-btn').disabled = false;
     } catch (e) { $('#cx-info').textContent = e.message; }
@@ -239,7 +240,7 @@
         await api.post({ action: 'cancel', id, token: t });
         $('#title').textContent = T.cancelled[0]; $('#lead').textContent = T.cancelled[1];
         $('#cx-info').textContent = ''; e.target.hidden = true; $('#cx-move').hidden = true; $('#cx-note').hidden = true;
-        const l = $('#cx-link'); l.hidden = false; l.href = location.pathname + (LOC ? '?loc=' + LOC : '');
+        const l = $('#cx-link'); l.hidden = false; l.href = location.pathname + (LOC ? '?loc=' + LOC + '&for=' + PRACTICE : '');
       } catch (err) { e.target.disabled = false; $('#cx-err').textContent = err.message; }
     };
   }
@@ -249,7 +250,7 @@
     try {
       const r = await api.lookup(id, t);
       const clinic = mkPlace(r.clinic, { address: r.address, short: r.short });
-      S.clinic = clinic; LOC = slug(r.clinic);
+      S.clinic = clinic; LOC = slug(r.clinic); if (SITE.payments[r.practice]) PRACTICE = r.practice;
       S.booking = { id, token: t, start: r.start, end: r.end, title: r.title, location: r.address, date: istDate(r.start), clinic, payBy: r.payBy };
       if (r.paid) { goto(4); $('#thanksbody').textContent = T.alreadyPaid; $('#nexttitle').parentNode.hidden = true; }
       else goto(3);
@@ -289,6 +290,7 @@
 
   const qs = new URLSearchParams(location.search);
   LOC = (qs.get('loc') || '').toLowerCase();
+  if (SITE.payments[(qs.get('for') || '').toLowerCase()]) PRACTICE = (qs.get('for') || '').toLowerCase();
   if (qs.get('cancel')) cancelView(qs.get('cancel'), qs.get('t') || '');
   else if (qs.get('pay')) payView(qs.get('pay'), qs.get('t') || '');
   else if (!LOC && SITE.apiUrl) noLinkView();

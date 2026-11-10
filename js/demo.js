@@ -74,7 +74,7 @@ window.demo = (() => {
         if (!o) throw err('That time was just taken.', 'taken');
         (booked[cid + '|' + b.date] = booked[cid + '|' + b.date] || new Set()).add(b.i);
         return { ok: true, id: 'demo|' + cid + '|' + b.date + '|' + b.i, token: 'demo', start: o.start, end: o.end,
-          title: b.name + ' (' + p.tag + ')', location: p.address, payBy: Date.now() + 24 * 36e5 };
+          title: b.name + ' with Namaste Psychology (' + p.tag + ')', location: p.address, payBy: Date.now() + 24 * 36e5 };
       }
       if (b.action === 'reschedule') {
         const old = parse(b.id), set = booked[old.clinic + '|' + old.ds], p = place(old.clinic);
